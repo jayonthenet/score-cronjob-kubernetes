@@ -24,143 +24,146 @@ hctl create module \
     --set=module_inputs='{"namespace": "CHANGEME"}'
 ```
 
-### Using the Humanitec Terraform Provider
+### Using the Humanitec Platform Orchestrator Terraform Provider
 
-Alternatively, you can use the [Humanitec Terraform Provider](https://registry.terraform.io/providers/humanitec/humanitec/latest/docs) to manage this module configuration:
+Alternatively, you can use the [Humanitec Platform Orchestrator Terraform Provider](https://registry.terraform.io/providers/humanitec/platform-orchestrator/latest/docs) to manage this module configuration:
 
 ```hcl
-# Configure the Humanitec provider
+# Configure the Platform Orchestrator provider
 terraform {
   required_providers {
-    humanitec = {
-      source  = "humanitec/humanitec"
+    platform-orchestrator = {
+      source  = "humanitec/platform-orchestrator"
       version = "~> 1.0"
     }
   }
 }
 
-provider "humanitec" {
-  # Set via HUMANITEC_TOKEN environment variable
-  # or use the 'token' parameter
+provider "platform-orchestrator" {
+  # Configuration options
+  # Set via HUMANITEC_HOST, HUMANITEC_ORG, HUMANITEC_TOKEN environment variables
 }
 
 # Create the resource type (if not already exists)
-resource "humanitec_resource_type" "score_cronjob" {
-  id          = "score-cronjob"
-  name        = "score-cronjob"
-  description = "Score CronJob Workload"
+resource "platformorchestrator_resource_type" "score_cronjob" {
+  id   = "score-cronjob"
+  name = "Score CronJob Workload"
 }
 
 # Define the module for score-cronjob resources
-resource "humanitec_resource_definition" "score_cronjob_kubernetes" {
-  id          = "score-cronjob-kubernetes"
-  name        = "score-cronjob-kubernetes"
-  type        = humanitec_resource_type.score_cronjob.id
-  driver_type = "humanitec/terraform"
+resource "platformorchestrator_module" "score_cronjob_kubernetes" {
+  id            = "score-cronjob-kubernetes"
+  resource_type = platformorchestrator_resource_type.score_cronjob.id
 
-  driver_inputs = {
-    values_string = jsonencode({
-      # Module source - replace CHANGEME with the version tag
-      source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
+  module_source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
 
-      # Provider mapping - replace CHANGEME with your Kubernetes provider
-      provider = {
-        kubernetes = "CHANGEME"
-      }
-
-      # Module inputs - configure namespace and other settings
-      variables = {
-        namespace = "default"  # Replace with your namespace or use dynamic reference
-        # Optional: service_account_name = "my-service-account"
-        # Optional: additional_annotations = { "example.com/annotation" = "value" }
-      }
-    })
+  # Provider mapping - replace CHANGEME with your Kubernetes provider ID
+  provider_mapping = {
+    kubernetes = "CHANGEME"
   }
 
-  # Criteria to match this module to specific environments or applications
-  # Remove this block to match all resources of this type
-  provision = {
-    "app.terraform.io/env/#id" = "$${context.env.id}"
+  # Module parameters - these are passed from the Score file
+  module_params = {
+    metadata = {
+      type = "map"
+    }
+    containers = {
+      type = "map"
+    }
+    schedules = {
+      type = "map"
+    }
+  }
+
+  # Module inputs - configure namespace and other settings
+  module_inputs = {
+    namespace = "default"  # Replace with your namespace or use dynamic reference
+    # Optional: service_account_name = "my-service-account"
+    # Optional: additional_annotations = { "example.com/annotation" = "value" }
   }
 }
 
 # Example: Define with dynamic namespace from k8s-namespace resource
-resource "humanitec_resource_definition" "score_cronjob_with_dynamic_namespace" {
-  id          = "score-cronjob-kubernetes-dynamic-ns"
-  name        = "score-cronjob-kubernetes-dynamic-ns"
-  type        = humanitec_resource_type.score_cronjob.id
-  driver_type = "humanitec/terraform"
+resource "platformorchestrator_module" "score_cronjob_with_dynamic_namespace" {
+  id            = "score-cronjob-kubernetes-dynamic-ns"
+  resource_type = platformorchestrator_resource_type.score_cronjob.id
 
-  driver_inputs = {
-    values_string = jsonencode({
-      source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
+  module_source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
 
-      provider = {
-        kubernetes = "CHANGEME"
-      }
-
-      variables = {
-        # Reference the namespace from a k8s-namespace resource
-        namespace = "$${resources.ns.outputs.name}"
-      }
-    })
-
-    # Declare dependency on k8s-namespace resource
-    secret_refs = jsonencode({
-      ns = {
-        type = "k8s-namespace"
-      }
-    })
+  provider_mapping = {
+    kubernetes = "CHANGEME"
   }
 
-  provision = {
-    "app.terraform.io/env/#id" = "$${context.env.id}"
+  module_params = {
+    metadata = {
+      type = "map"
+    }
+    containers = {
+      type = "map"
+    }
+    schedules = {
+      type = "map"
+    }
+  }
+
+  # Declare dependency on k8s-namespace resource
+  dependencies = {
+    ns = {
+      type = "k8s-namespace"
+    }
+  }
+
+  module_inputs = {
+    # Reference the namespace from a k8s-namespace resource
+    namespace = "$${resources.ns.outputs.name}"
   }
 }
 
 # Example: Configure CronJob and Job specifications
-resource "humanitec_resource_definition" "score_cronjob_with_config" {
-  id          = "score-cronjob-kubernetes-configured"
-  name        = "score-cronjob-kubernetes-configured"
-  type        = humanitec_resource_type.score_cronjob.id
-  driver_type = "humanitec/terraform"
+resource "platformorchestrator_module" "score_cronjob_with_config" {
+  id            = "score-cronjob-kubernetes-configured"
+  resource_type = platformorchestrator_resource_type.score_cronjob.id
 
-  driver_inputs = {
-    values_string = jsonencode({
-      source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
+  module_source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
 
-      provider = {
-        kubernetes = "CHANGEME"
-      }
-
-      variables = {
-        namespace           = "production"
-        service_account_name = "cronjob-sa"
-
-        # Configure CronJob behavior
-        cronjob_spec = {
-          concurrency_policy            = "Forbid"
-          failed_jobs_history_limit     = 3
-          successful_jobs_history_limit = 5
-          suspend                       = false
-        }
-
-        # Configure Job behavior
-        job_spec = {
-          backoff_limit              = 3
-          ttl_seconds_after_finished = 3600  # Clean up after 1 hour
-        }
-
-        # Add custom annotations
-        additional_annotations = {
-          "monitoring.example.com/enabled" = "true"
-        }
-      }
-    })
+  provider_mapping = {
+    kubernetes = "CHANGEME"
   }
 
-  provision = {
-    "app.terraform.io/env/#id" = "$${context.env.id}"
+  module_params = {
+    metadata = {
+      type = "map"
+    }
+    containers = {
+      type = "map"
+    }
+    schedules = {
+      type = "map"
+    }
+  }
+
+  module_inputs = {
+    namespace            = "production"
+    service_account_name = "cronjob-sa"
+
+    # Configure CronJob behavior
+    cronjob_spec = {
+      concurrency_policy            = "Forbid"
+      failed_jobs_history_limit     = 3
+      successful_jobs_history_limit = 5
+      suspend                       = false
+    }
+
+    # Configure Job behavior
+    job_spec = {
+      backoff_limit              = 3
+      ttl_seconds_after_finished = 3600  # Clean up after 1 hour
+    }
+
+    # Add custom annotations
+    additional_annotations = {
+      "monitoring.example.com/enabled" = "true"
+    }
   }
 }
 ```
@@ -170,9 +173,9 @@ The Terraform provider approach offers several advantages:
 - **Version control**: Manage your Humanitec configuration as code
 - **Modularity**: Reuse configurations across environments
 - **Validation**: Terraform validates your configuration before applying
-- **State management**: Track changes to your resource definitions over time
+- **State management**: Track changes to your module configurations over time
 
-For more information on using the Humanitec Terraform Provider, see the [official documentation](https://registry.terraform.io/providers/humanitec/humanitec/latest/docs).
+For more information on using the Humanitec Platform Orchestrator Terraform Provider, see the [official documentation](https://registry.terraform.io/providers/humanitec/platform-orchestrator/latest/docs).
 
 ## Parameters
 
