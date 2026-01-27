@@ -198,7 +198,7 @@ resource "kubernetes_secret" "files" {
   }
 }
 
-resource "kubernetes_cron_job" "default" {
+resource "kubernetes_cron_job_v1" "default" {
   for_each = local.schedules
 
   metadata {

@@ -5,7 +5,7 @@ output "humanitec_metadata" {
       "Kubernetes-Namespace" = var.namespace
     },
     {
-      for k, v in kubernetes_cron_job.default :
+      for k, v in kubernetes_cron_job_v1.default :
       "Kubernetes-CronJob-${k}" => v.metadata[0].name
     }
   )
@@ -14,7 +14,7 @@ output "humanitec_metadata" {
 output "cronjob_names" {
   description = "Map of schedule keys to CronJob names"
   value = {
-    for k, v in kubernetes_cron_job.default : k => v.metadata[0].name
+    for k, v in kubernetes_cron_job_v1.default : k => v.metadata[0].name
   }
 }
 
