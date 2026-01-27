@@ -10,9 +10,6 @@ locals {
     {}
   )
 
-  # Validation: ensure at least one schedule is defined
-  _ = length(local.schedules) > 0 ? true : file("ERROR: At least one schedule must be defined in either var.schedules or var.metadata.schedules")
-
   # Extract v1 extension specs from metadata (for backward compatibility with v1 humanitec.score.yaml)
   metadata_cronjob_spec = try(var.metadata.cronjob, {})
   metadata_job_spec     = try(var.metadata.job, {})
