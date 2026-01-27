@@ -43,12 +43,8 @@ variable "schedules" {
       args    = optional(list(string))
     })))
   }))
-  description = "Map of schedules. Each schedule creates a separate CronJob resource."
-
-  validation {
-    condition     = length(var.schedules) > 0
-    error_message = "At least one schedule must be defined."
-  }
+  description = "Map of schedules. Each schedule creates a separate CronJob resource. Can be provided directly or extracted from metadata.schedules."
+  default     = null
 }
 
 variable "cronjob_spec" {
@@ -58,6 +54,7 @@ variable "cronjob_spec" {
     successful_jobs_history_limit = optional(number)
     starting_deadline_seconds     = optional(number)
     suspend                       = optional(bool)
+    time_zone                     = optional(string)
   })
   description = "CronJob-specific configuration."
   default     = {}
@@ -89,5 +86,50 @@ variable "service_account_name" {
 variable "additional_annotations" {
   type        = map(string)
   description = "Additional annotations to add to all resources."
+  default     = {}
+}
+
+variable "cronjob_annotations" {
+  type        = map(string)
+  description = "Annotations to add to the CronJob resource metadata."
+  default     = {}
+}
+
+variable "job_annotations" {
+  type        = map(string)
+  description = "Annotations to add to Job resource metadata."
+  default     = {}
+}
+
+variable "pod_annotations" {
+  type        = map(string)
+  description = "Annotations to add to Pod metadata."
+  default     = {}
+}
+
+variable "cronjob_labels" {
+  type        = map(string)
+  description = "Labels to add to the CronJob resource metadata."
+  default     = {}
+}
+
+variable "job_labels" {
+  type        = map(string)
+  description = "Labels to add to Job resource metadata."
+  default     = {}
+}
+
+variable "pod_labels" {
+  type        = map(string)
+  description = "Labels to add to Pod metadata."
+  default     = {}
+}
+
+variable "pod_spec" {
+  type = object({
+    node_selector = optional(map(string))
+    os_name       = optional(string)
+  })
+  description = "Pod-specific configuration."
   default     = {}
 }

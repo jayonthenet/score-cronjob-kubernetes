@@ -45,15 +45,28 @@ provider "platform-orchestrator" {
 }
 
 # Create the resource type (if not already exists)
-resource "platformorchestrator_resource_type" "score_cronjob" {
-  id   = "score-cronjob"
-  name = "Score CronJob Workload"
+resource "platform-orchestrator_resource_type" "score_cronjob" {
+  id          = "score-cronjob"
+  description = "A Score CronJob workload."
+  output_schema = jsonencode({
+    type = "object"
+    properties = {
+      cronjob_names = {
+        type        = "object"
+        description = "Map of schedule keys to CronJob names."
+        additionalProperties = {
+          type = "string"
+        }
+      }
+    }
+  })
+  is_developer_accessible = true
 }
 
 # Define the module for score-cronjob resources
-resource "platformorchestrator_module" "score_cronjob_kubernetes" {
+resource "platform-orchestrator_module" "score_cronjob_kubernetes" {
   id            = "score-cronjob-kubernetes"
-  resource_type = platformorchestrator_resource_type.score_cronjob.id
+  resource_type = platform-orchestrator_resource_type.score_cronjob.id
 
   module_source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
 
@@ -76,17 +89,17 @@ resource "platformorchestrator_module" "score_cronjob_kubernetes" {
   }
 
   # Module inputs - configure namespace and other settings
-  module_inputs = {
+  module_inputs = jsonencode({
     namespace = "default"  # Replace with your namespace or use dynamic reference
     # Optional: service_account_name = "my-service-account"
     # Optional: additional_annotations = { "example.com/annotation" = "value" }
-  }
+  })
 }
 
 # Example: Define with dynamic namespace from k8s-namespace resource
-resource "platformorchestrator_module" "score_cronjob_with_dynamic_namespace" {
+resource "platform-orchestrator_module" "score_cronjob_with_dynamic_namespace" {
   id            = "score-cronjob-kubernetes-dynamic-ns"
-  resource_type = platformorchestrator_resource_type.score_cronjob.id
+  resource_type = platform-orchestrator_resource_type.score_cronjob.id
 
   module_source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
 
@@ -113,16 +126,16 @@ resource "platformorchestrator_module" "score_cronjob_with_dynamic_namespace" {
     }
   }
 
-  module_inputs = {
+  module_inputs = jsonencode({
     # Reference the namespace from a k8s-namespace resource
     namespace = "$${resources.ns.outputs.name}"
-  }
+  })
 }
 
 # Example: Configure CronJob and Job specifications
-resource "platformorchestrator_module" "score_cronjob_with_config" {
+resource "platform-orchestrator_module" "score_cronjob_with_config" {
   id            = "score-cronjob-kubernetes-configured"
-  resource_type = platformorchestrator_resource_type.score_cronjob.id
+  resource_type = platform-orchestrator_resource_type.score_cronjob.id
 
   module_source = "git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME"
 
@@ -142,7 +155,7 @@ resource "platformorchestrator_module" "score_cronjob_with_config" {
     }
   }
 
-  module_inputs = {
+  module_inputs = jsonencode({
     namespace            = "production"
     service_account_name = "cronjob-sa"
 
@@ -164,7 +177,7 @@ resource "platformorchestrator_module" "score_cronjob_with_config" {
     additional_annotations = {
       "monitoring.example.com/enabled" = "true"
     }
-  }
+  })
 }
 ```
 

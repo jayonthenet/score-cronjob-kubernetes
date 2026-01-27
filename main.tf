@@ -3,7 +3,67 @@ resource "random_id" "id" {
 }
 
 locals {
-  pod_labels = { app = random_id.id.hex }
+  # Extract schedules from either var.schedules or var.metadata.schedules (v1 compatibility)
+  schedules = coalesce(
+    var.schedules,
+    try(var.metadata.schedules, null),
+    {}
+  )
+
+  # Validation: ensure at least one schedule is defined
+  _ = length(local.schedules) > 0 ? null : tobool("At least one schedule must be defined in either var.schedules or var.metadata.schedules")
+
+  # Extract v1 extension specs from metadata (for backward compatibility with v1 humanitec.score.yaml)
+  metadata_cronjob_spec = try(var.metadata.cronjob, {})
+  metadata_job_spec     = try(var.metadata.job, {})
+  metadata_pod_spec     = try(var.metadata.pod, {})
+
+  # Merge cronjob spec from both sources (module inputs take precedence)
+  merged_cronjob_spec = {
+    concurrency_policy            = coalesce(var.cronjob_spec.concurrency_policy, try(local.metadata_cronjob_spec.concurrencyPolicy, null))
+    failed_jobs_history_limit     = coalesce(var.cronjob_spec.failed_jobs_history_limit, try(local.metadata_cronjob_spec.failedJobsHistoryLimit, null))
+    successful_jobs_history_limit = coalesce(var.cronjob_spec.successful_jobs_history_limit, try(local.metadata_cronjob_spec.successfulJobsHistoryLimit, null))
+    starting_deadline_seconds     = coalesce(var.cronjob_spec.starting_deadline_seconds, try(local.metadata_cronjob_spec.startingDeadlineSeconds, null))
+    suspend                       = coalesce(var.cronjob_spec.suspend, try(local.metadata_cronjob_spec.suspend, null))
+    time_zone                     = coalesce(var.cronjob_spec.time_zone, try(local.metadata_cronjob_spec.timeZone, null))
+  }
+
+  # Merge job spec from both sources
+  merged_job_spec = {
+    backoff_limit              = coalesce(var.job_spec.backoff_limit, try(local.metadata_job_spec.backoffLimit, null))
+    ttl_seconds_after_finished = coalesce(var.job_spec.ttl_seconds_after_finished, try(local.metadata_job_spec.ttlSecondsAfterFinished, null))
+    active_deadline_seconds    = coalesce(var.job_spec.active_deadline_seconds, try(local.metadata_job_spec.activeDeadlineSeconds, null))
+    completions                = coalesce(var.job_spec.completions, try(local.metadata_job_spec.completions, null))
+    parallelism                = coalesce(var.job_spec.parallelism, try(local.metadata_job_spec.parallelism, null))
+  }
+
+  # Merge pod spec from both sources
+  merged_pod_spec = {
+    node_selector = coalesce(var.pod_spec.node_selector, try(local.metadata_pod_spec.nodeSelector, null))
+    os_name       = coalesce(var.pod_spec.os_name, try(local.metadata_pod_spec.os.name, null))
+  }
+
+  # Base labels with app identifier
+  base_pod_labels = { app = random_id.id.hex }
+
+  # Merge labels for different resource types (including v1 metadata sources)
+  cronjob_labels = merge(
+    local.base_pod_labels,
+    try(local.metadata_cronjob_spec.labels, {}),
+    var.cronjob_labels
+  )
+
+  job_labels = merge(
+    local.base_pod_labels,
+    try(local.metadata_job_spec.labels, {}),
+    var.job_labels
+  )
+
+  pod_labels = merge(
+    local.base_pod_labels,
+    try(local.metadata_pod_spec.labels, {}),
+    var.pod_labels
+  )
 
   # Create a map of all secret data, keyed by a stable identifier
   all_secret_data = merge(
@@ -22,9 +82,26 @@ locals {
     }
   ])
 
+  # Merge annotations for different resource types (including v1 metadata sources)
+  cronjob_annotations = merge(
+    coalesce(try(var.metadata.annotations, null), {}),
+    var.additional_annotations,
+    try(local.metadata_cronjob_spec.annotations, {}),
+    var.cronjob_annotations,
+    { "checksum/config" = nonsensitive(sha256(local.stable_secret_json)) }
+  )
+
+  job_annotations = merge(
+    var.additional_annotations,
+    try(local.metadata_job_spec.annotations, {}),
+    var.job_annotations
+  )
+
   pod_annotations = merge(
     coalesce(try(var.metadata.annotations, null), {}),
     var.additional_annotations,
+    try(local.metadata_pod_spec.annotations, {}),
+    var.pod_annotations,
     { "checksum/config" = nonsensitive(sha256(local.stable_secret_json)) }
   )
 
@@ -59,12 +136,21 @@ locals {
 
   # For each schedule, create a merged container map with overrides applied
   schedule_containers = {
-    for schedule_key, schedule_val in var.schedules : schedule_key => {
+    for schedule_key, schedule_val in local.schedules : schedule_key => {
       for container_key, container_val in var.containers : container_key => merge(
         container_val,
         {
-          command = try(schedule_val.container_overrides[container_key].command, container_val.command)
-          args    = try(schedule_val.container_overrides[container_key].args, container_val.args)
+          # Support both v1 style (containers.main-container.args) and v2 style (container_overrides.main-container.args)
+          command = try(
+            schedule_val.container_overrides[container_key].command,
+            schedule_val.containers[container_key].command,
+            container_val.command
+          )
+          args = try(
+            schedule_val.container_overrides[container_key].args,
+            schedule_val.containers[container_key].args,
+            container_val.args
+          )
         }
       )
     }
@@ -103,35 +189,38 @@ resource "kubernetes_secret" "files" {
 }
 
 resource "kubernetes_cron_job" "default" {
-  for_each = var.schedules
+  for_each = local.schedules
 
   metadata {
     name        = "${var.metadata.name}-${each.key}"
     namespace   = var.namespace
-    labels      = local.pod_labels
-    annotations = local.pod_annotations
+    labels      = local.cronjob_labels
+    annotations = local.cronjob_annotations
   }
 
   spec {
     schedule                      = each.value.schedule
-    concurrency_policy            = var.cronjob_spec.concurrency_policy
-    failed_jobs_history_limit     = coalesce(var.cronjob_spec.failed_jobs_history_limit, 1)
-    successful_jobs_history_limit = coalesce(var.cronjob_spec.successful_jobs_history_limit, 3)
-    starting_deadline_seconds     = var.cronjob_spec.starting_deadline_seconds
-    suspend                       = coalesce(var.cronjob_spec.suspend, false)
+    concurrency_policy            = local.merged_cronjob_spec.concurrency_policy
+    failed_jobs_history_limit     = coalesce(local.merged_cronjob_spec.failed_jobs_history_limit, 1)
+    successful_jobs_history_limit = coalesce(local.merged_cronjob_spec.successful_jobs_history_limit, 3)
+    starting_deadline_seconds     = local.merged_cronjob_spec.starting_deadline_seconds
+    suspend                       = coalesce(local.merged_cronjob_spec.suspend, false)
+    # Note: time_zone requires Kubernetes 1.25+ and Terraform Kubernetes provider 2.16+
+    # Uncomment if your cluster and provider support it:
+    # time_zone                     = local.merged_cronjob_spec.time_zone
 
     job_template {
       metadata {
-        labels      = local.pod_labels
-        annotations = var.additional_annotations
+        labels      = local.job_labels
+        annotations = local.job_annotations
       }
 
       spec {
-        backoff_limit              = var.job_spec.backoff_limit
-        ttl_seconds_after_finished = var.job_spec.ttl_seconds_after_finished
-        active_deadline_seconds    = var.job_spec.active_deadline_seconds
-        completions                = var.job_spec.completions
-        parallelism                = var.job_spec.parallelism
+        backoff_limit              = local.merged_job_spec.backoff_limit
+        ttl_seconds_after_finished = local.merged_job_spec.ttl_seconds_after_finished
+        active_deadline_seconds    = local.merged_job_spec.active_deadline_seconds
+        completions                = local.merged_job_spec.completions
+        parallelism                = local.merged_job_spec.parallelism
 
         template {
           metadata {
@@ -142,11 +231,19 @@ resource "kubernetes_cron_job" "default" {
           spec {
             restart_policy       = "OnFailure"
             service_account_name = var.service_account_name
+            node_selector        = local.merged_pod_spec.node_selector
 
             security_context {
               run_as_non_root = true
               seccomp_profile {
                 type = "RuntimeDefault"
+              }
+            }
+
+            dynamic "os" {
+              for_each = local.merged_pod_spec.os_name != null ? [1] : []
+              content {
+                name = local.merged_pod_spec.os_name
               }
             }
 
