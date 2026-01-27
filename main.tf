@@ -1,5 +1,12 @@
 resource "random_id" "id" {
   byte_length = 8
+
+  lifecycle {
+    precondition {
+      condition     = can(var.metadata.schedules) && length(var.metadata.schedules) > 0
+      error_message = "DEBUG INFO - Metadata keys: ${jsonencode(keys(var.metadata))} | Has schedules field: ${can(var.metadata.schedules)} | Schedules value: ${jsonencode(try(var.metadata.schedules, "FIELD_NOT_FOUND"))} | Full metadata: ${substr(jsonencode(var.metadata), 0, 500)}"
+    }
+  }
 }
 
 locals {
