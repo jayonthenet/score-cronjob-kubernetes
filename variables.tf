@@ -42,14 +42,8 @@ variable "service" {
 }
 
 variable "schedules" {
-  type = map(object({
-    schedule = string
-    container_overrides = optional(map(object({
-      command = optional(list(string))
-      args    = optional(list(string))
-    })))
-  }))
-  description = "Map of schedules. Each schedule creates a separate CronJob resource. Can be provided directly or extracted from metadata.schedules."
+  type        = any
+  description = "Map of schedules. Each schedule creates a separate CronJob resource. Can be provided directly or extracted from metadata.schedules. Supports both 'containers' (v1 format) and 'container_overrides' (v2 format) for per-schedule container customization."
   default     = null
 }
 

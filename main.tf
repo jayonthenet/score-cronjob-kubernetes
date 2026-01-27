@@ -1,24 +1,27 @@
 resource "random_id" "id" {
   byte_length = 8
-
-  lifecycle {
-    precondition {
-      condition     = can(var.metadata.schedules) && length(var.metadata.schedules) > 0
-      error_message = "DEBUG INFO - Metadata keys: ${jsonencode(keys(var.metadata))} | Has schedules field: ${can(var.metadata.schedules)} | Schedules value: ${jsonencode(try(var.metadata.schedules, "FIELD_NOT_FOUND"))} | Full metadata: ${substr(jsonencode(var.metadata), 0, 500)}"
-    }
-  }
 }
 
 locals {
-  # Extract schedules from either var.schedules or var.metadata.schedules (v1 compatibility)
-  schedules = coalesce(
+  # Extract raw schedules from either var.schedules or var.metadata.schedules (v1 compatibility)
+  raw_schedules = coalesce(
     var.schedules,
     try(var.metadata.schedules, null),
     {}
   )
 
-  # Debug: Force error if schedules are empty to see what metadata contains
-  debug_check = length(local.schedules) > 0 ? "ok" : "ERROR: No schedules found. Metadata keys: ${jsonencode(keys(var.metadata))}, Metadata schedules: ${jsonencode(try(var.metadata.schedules, "NOT_FOUND"))}"
+  # Normalize schedules: convert v1 "containers" field to v2 "container_overrides" format
+  schedules = {
+    for key, schedule in local.raw_schedules : key => {
+      schedule = schedule.schedule
+      # Support both "containers" (v1) and "container_overrides" (v2) field names
+      container_overrides = try(
+        schedule.container_overrides,
+        schedule.containers,
+        null
+      )
+    }
+  }
 
   # Extract v1 extension specs from metadata (for backward compatibility with v1 humanitec.score.yaml)
   metadata_cronjob_spec = try(var.metadata.cronjob, {})
