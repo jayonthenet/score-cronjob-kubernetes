@@ -35,6 +35,12 @@ variable "containers" {
   description = "The containers section of the Score file."
 }
 
+variable "service" {
+  type        = any
+  description = "The service section of the Score file. Not used for CronJobs but accepted for CLI compatibility."
+  default     = null
+}
+
 variable "schedules" {
   type = map(object({
     schedule = string
