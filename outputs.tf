@@ -18,12 +18,17 @@ output "cronjob_names" {
   }
 }
 
-output "debug_metadata" {
-  description = "Debug: Full metadata object passed to module"
-  value       = var.metadata
+output "debug_metadata_keys" {
+  description = "Debug: Keys in metadata object"
+  value       = keys(var.metadata)
 }
 
-output "debug_schedules" {
-  description = "Debug: Extracted schedules"
+output "debug_schedules_value" {
+  description = "Debug: Value of metadata.schedules"
+  value       = try(var.metadata.schedules, "NOT_FOUND")
+}
+
+output "debug_schedules_extracted" {
+  description = "Debug: Extracted schedules from local"
   value       = local.schedules
 }

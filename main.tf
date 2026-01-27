@@ -10,6 +10,9 @@ locals {
     {}
   )
 
+  # Debug: Force error if schedules are empty to see what metadata contains
+  debug_check = length(local.schedules) > 0 ? "ok" : "ERROR: No schedules found. Metadata keys: ${jsonencode(keys(var.metadata))}, Metadata schedules: ${jsonencode(try(var.metadata.schedules, "NOT_FOUND"))}"
+
   # Extract v1 extension specs from metadata (for backward compatibility with v1 humanitec.score.yaml)
   metadata_cronjob_spec = try(var.metadata.cronjob, {})
   metadata_job_spec     = try(var.metadata.job, {})
