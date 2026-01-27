@@ -17,3 +17,13 @@ output "cronjob_names" {
     for k, v in kubernetes_cron_job.default : k => v.metadata[0].name
   }
 }
+
+output "debug_metadata" {
+  description = "Debug: Full metadata object passed to module"
+  value       = var.metadata
+}
+
+output "debug_schedules" {
+  description = "Debug: Extracted schedules"
+  value       = local.schedules
+}
