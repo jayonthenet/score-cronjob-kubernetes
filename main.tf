@@ -30,27 +30,27 @@ locals {
 
   # Merge cronjob spec from both sources (module inputs take precedence)
   merged_cronjob_spec = {
-    concurrency_policy            = coalesce(var.cronjob_spec.concurrency_policy, try(local.metadata_cronjob_spec.concurrencyPolicy, null))
-    failed_jobs_history_limit     = coalesce(var.cronjob_spec.failed_jobs_history_limit, try(local.metadata_cronjob_spec.failedJobsHistoryLimit, null))
-    successful_jobs_history_limit = coalesce(var.cronjob_spec.successful_jobs_history_limit, try(local.metadata_cronjob_spec.successfulJobsHistoryLimit, null))
-    starting_deadline_seconds     = coalesce(var.cronjob_spec.starting_deadline_seconds, try(local.metadata_cronjob_spec.startingDeadlineSeconds, null))
-    suspend                       = coalesce(var.cronjob_spec.suspend, try(local.metadata_cronjob_spec.suspend, null))
-    time_zone                     = coalesce(var.cronjob_spec.time_zone, try(local.metadata_cronjob_spec.timeZone, null))
+    concurrency_policy            = try(coalesce(var.cronjob_spec.concurrency_policy, local.metadata_cronjob_spec.concurrencyPolicy), null)
+    failed_jobs_history_limit     = try(coalesce(var.cronjob_spec.failed_jobs_history_limit, local.metadata_cronjob_spec.failedJobsHistoryLimit), null)
+    successful_jobs_history_limit = try(coalesce(var.cronjob_spec.successful_jobs_history_limit, local.metadata_cronjob_spec.successfulJobsHistoryLimit), null)
+    starting_deadline_seconds     = try(coalesce(var.cronjob_spec.starting_deadline_seconds, local.metadata_cronjob_spec.startingDeadlineSeconds), null)
+    suspend                       = try(coalesce(var.cronjob_spec.suspend, local.metadata_cronjob_spec.suspend), null)
+    time_zone                     = try(coalesce(var.cronjob_spec.time_zone, local.metadata_cronjob_spec.timeZone), null)
   }
 
   # Merge job spec from both sources
   merged_job_spec = {
-    backoff_limit              = coalesce(var.job_spec.backoff_limit, try(local.metadata_job_spec.backoffLimit, null))
-    ttl_seconds_after_finished = coalesce(var.job_spec.ttl_seconds_after_finished, try(local.metadata_job_spec.ttlSecondsAfterFinished, null))
-    active_deadline_seconds    = coalesce(var.job_spec.active_deadline_seconds, try(local.metadata_job_spec.activeDeadlineSeconds, null))
-    completions                = coalesce(var.job_spec.completions, try(local.metadata_job_spec.completions, null))
-    parallelism                = coalesce(var.job_spec.parallelism, try(local.metadata_job_spec.parallelism, null))
+    backoff_limit              = try(coalesce(var.job_spec.backoff_limit, local.metadata_job_spec.backoffLimit), null)
+    ttl_seconds_after_finished = try(coalesce(var.job_spec.ttl_seconds_after_finished, local.metadata_job_spec.ttlSecondsAfterFinished), null)
+    active_deadline_seconds    = try(coalesce(var.job_spec.active_deadline_seconds, local.metadata_job_spec.activeDeadlineSeconds), null)
+    completions                = try(coalesce(var.job_spec.completions, local.metadata_job_spec.completions), null)
+    parallelism                = try(coalesce(var.job_spec.parallelism, local.metadata_job_spec.parallelism), null)
   }
 
   # Merge pod spec from both sources
   merged_pod_spec = {
-    node_selector = coalesce(var.pod_spec.node_selector, try(local.metadata_pod_spec.nodeSelector, null))
-    os_name       = coalesce(var.pod_spec.os_name, try(local.metadata_pod_spec.os.name, null))
+    node_selector = try(coalesce(var.pod_spec.node_selector, local.metadata_pod_spec.nodeSelector), null)
+    os_name       = try(coalesce(var.pod_spec.os_name, local.metadata_pod_spec.os.name), null)
   }
 
   # Base labels with app identifier
