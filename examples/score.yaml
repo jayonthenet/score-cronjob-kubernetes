@@ -1,0 +1,48 @@
+apiVersion: score.dev/v1b1
+
+metadata:
+  name: my-cronjob
+  annotations:
+    humanitec.dev/resType: "score-cronjob"
+
+  # All v1 humanitec.score.yaml extensions go here:
+  # This allows you to copy-paste from v1 humanitec.score.yaml directly into metadata
+
+  schedules:
+    6-hour-run:
+      schedule: "0-59 * * * *"
+      containers:
+        main-container:
+          args: ["-c", "echo 'Running 6-hour scheduled task'; sleep 10"]
+
+  cronjob:
+    annotations:
+      cronjobannotationkey: cronjobannotationvalue
+    labels:
+      cronjoblabelkey: cronjoblabelvalue
+    concurrencyPolicy: Forbid
+    timeZone: Africa/Lagos
+
+  job:
+    annotations:
+      jobannotationkey: jobannotationvalue
+    labels:
+      joblabelkey: joblabelvalue
+    activeDeadlineSeconds: 30
+    ttlSecondsAfterFinished: 3600
+
+  pod:
+    annotations:
+      podannotationkey: podannotationvalue
+    labels:
+      podlabelkey: podlabelvalue
+    nodeSelector:
+      topology.kubernetes.io/region: northeurope
+    os:
+      name: linux
+
+containers:
+  main-container:
+    image: busybox:latest
+    command: ["/bin/sh"]
+    args: ["-c", "echo 'Running scheduled task'; sleep 10"]
