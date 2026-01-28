@@ -30,27 +30,27 @@ locals {
 
   # Merge cronjob spec from both sources (module inputs take precedence)
   merged_cronjob_spec = {
-    concurrency_policy            = try(var.cronjob_spec.concurrency_policy, local.metadata_cronjob_spec.concurrencyPolicy, null)
-    failed_jobs_history_limit     = try(var.cronjob_spec.failed_jobs_history_limit, local.metadata_cronjob_spec.failedJobsHistoryLimit, null)
-    successful_jobs_history_limit = try(var.cronjob_spec.successful_jobs_history_limit, local.metadata_cronjob_spec.successfulJobsHistoryLimit, null)
-    starting_deadline_seconds     = try(var.cronjob_spec.starting_deadline_seconds, local.metadata_cronjob_spec.startingDeadlineSeconds, null)
-    suspend                       = try(var.cronjob_spec.suspend, local.metadata_cronjob_spec.suspend, null)
-    time_zone                     = try(var.cronjob_spec.time_zone, local.metadata_cronjob_spec.timeZone, null)
+    concurrency_policy            = coalesce(var.cronjob_spec.concurrency_policy, try(local.metadata_cronjob_spec.concurrencyPolicy, null))
+    failed_jobs_history_limit     = coalesce(var.cronjob_spec.failed_jobs_history_limit, try(local.metadata_cronjob_spec.failedJobsHistoryLimit, null))
+    successful_jobs_history_limit = coalesce(var.cronjob_spec.successful_jobs_history_limit, try(local.metadata_cronjob_spec.successfulJobsHistoryLimit, null))
+    starting_deadline_seconds     = coalesce(var.cronjob_spec.starting_deadline_seconds, try(local.metadata_cronjob_spec.startingDeadlineSeconds, null))
+    suspend                       = coalesce(var.cronjob_spec.suspend, try(local.metadata_cronjob_spec.suspend, null))
+    time_zone                     = coalesce(var.cronjob_spec.time_zone, try(local.metadata_cronjob_spec.timeZone, null))
   }
 
   # Merge job spec from both sources
   merged_job_spec = {
-    backoff_limit              = try(var.job_spec.backoff_limit, local.metadata_job_spec.backoffLimit, null)
-    ttl_seconds_after_finished = try(var.job_spec.ttl_seconds_after_finished, local.metadata_job_spec.ttlSecondsAfterFinished, null)
-    active_deadline_seconds    = try(var.job_spec.active_deadline_seconds, local.metadata_job_spec.activeDeadlineSeconds, null)
-    completions                = try(var.job_spec.completions, local.metadata_job_spec.completions, null)
-    parallelism                = try(var.job_spec.parallelism, local.metadata_job_spec.parallelism, null)
+    backoff_limit              = coalesce(var.job_spec.backoff_limit, try(local.metadata_job_spec.backoffLimit, null))
+    ttl_seconds_after_finished = coalesce(var.job_spec.ttl_seconds_after_finished, try(local.metadata_job_spec.ttlSecondsAfterFinished, null))
+    active_deadline_seconds    = coalesce(var.job_spec.active_deadline_seconds, try(local.metadata_job_spec.activeDeadlineSeconds, null))
+    completions                = coalesce(var.job_spec.completions, try(local.metadata_job_spec.completions, null))
+    parallelism                = coalesce(var.job_spec.parallelism, try(local.metadata_job_spec.parallelism, null))
   }
 
   # Merge pod spec from both sources
   merged_pod_spec = {
-    node_selector = try(var.pod_spec.node_selector, local.metadata_pod_spec.nodeSelector, null)
-    os_name       = try(var.pod_spec.os_name, local.metadata_pod_spec.os.name, null)
+    node_selector = coalesce(var.pod_spec.node_selector, try(local.metadata_pod_spec.nodeSelector, null))
+    os_name       = coalesce(var.pod_spec.os_name, try(local.metadata_pod_spec.os.name, null))
   }
 
   # Base labels with app identifier
@@ -210,13 +210,13 @@ resource "kubernetes_cron_job_v1" "default" {
 
   spec {
     schedule                      = each.value.schedule
-    concurrency_policy            = local.merged_cronjob_spec.concurrency_policy
+    concurrency_policy            = coalesce(local.merged_cronjob_spec.concurrency_policy, "Allow")
     failed_jobs_history_limit     = coalesce(local.merged_cronjob_spec.failed_jobs_history_limit, 1)
     successful_jobs_history_limit = coalesce(local.merged_cronjob_spec.successful_jobs_history_limit, 3)
     starting_deadline_seconds     = local.merged_cronjob_spec.starting_deadline_seconds
     suspend                       = coalesce(local.merged_cronjob_spec.suspend, false)
     # Note: time_zone requires Kubernetes 1.25+ and Terraform Kubernetes provider 2.16+
-    # Uncomment if your cluster and provider support it:
+    # Currently commented out due to provider version constraints
     # time_zone                     = local.merged_cronjob_spec.time_zone
 
     job_template {
@@ -226,7 +226,7 @@ resource "kubernetes_cron_job_v1" "default" {
       }
 
       spec {
-        backoff_limit              = local.merged_job_spec.backoff_limit
+        backoff_limit              = coalesce(local.merged_job_spec.backoff_limit, 6)
         ttl_seconds_after_finished = local.merged_job_spec.ttl_seconds_after_finished
         active_deadline_seconds    = local.merged_job_spec.active_deadline_seconds
         completions                = local.merged_job_spec.completions

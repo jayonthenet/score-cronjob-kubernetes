@@ -32,3 +32,23 @@ output "debug_schedules_extracted" {
   description = "Debug: Extracted schedules from local"
   value       = local.schedules
 }
+
+output "debug_metadata_cronjob_spec" {
+  description = "Debug: Extracted cronjob spec from metadata"
+  value       = local.metadata_cronjob_spec
+}
+
+output "debug_merged_cronjob_spec" {
+  description = "Debug: Merged cronjob spec"
+  value       = local.merged_cronjob_spec
+}
+
+output "debug_merged_job_spec" {
+  description = "Debug: Merged job spec"
+  value       = local.merged_job_spec
+}
+
+output "debug_merged_pod_spec" {
+  description = "Debug: Merged pod spec"
+  value       = local.merged_pod_spec
+}

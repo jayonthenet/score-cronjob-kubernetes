@@ -20,7 +20,7 @@ hctl create module \
     --set=resource_type=score-cronjob \
     --set=module_source=git::https://github.com/humanitec-tf-modules/score-cronjob-kubernetes?ref=CHANGEME \
     --set=provider_mapping='{"kubernetes": "CHANGEME"}' \
-    --set=module_params='{"metadata":{"type":"map"},"containers":{"type":"map"},"schedules":{"type":"map"}}' \
+    --set=module_params='{"metadata":{"type":"map"},"containers":{"type":"map"},"service":{"type":"map"},"schedules":{"type":"map"}}' \
     --set=module_inputs='{"namespace": "CHANGEME"}'
 ```
 
@@ -83,6 +83,9 @@ resource "platform-orchestrator_module" "score_cronjob_kubernetes" {
     containers = {
       type = "map"
     }
+    service = {
+      type = "map"
+    }
     schedules = {
       type = "map"
     }
@@ -114,6 +117,9 @@ resource "platform-orchestrator_module" "score_cronjob_with_dynamic_namespace" {
     containers = {
       type = "map"
     }
+    service = {
+      type = "map"
+    }
     schedules = {
       type = "map"
     }
@@ -128,7 +134,7 @@ resource "platform-orchestrator_module" "score_cronjob_with_dynamic_namespace" {
 
   module_inputs = jsonencode({
     # Reference the namespace from a k8s-namespace resource
-    namespace = "$${resources.ns.outputs.name}"
+    namespace = "$${resources.ns.outputs.namespace}"
   })
 }
 
@@ -148,6 +154,9 @@ resource "platform-orchestrator_module" "score_cronjob_with_config" {
       type = "map"
     }
     containers = {
+      type = "map"
+    }
+    service = {
       type = "map"
     }
     schedules = {
@@ -192,12 +201,13 @@ For more information on using the Humanitec Platform Orchestrator Terraform Prov
 
 ## Parameters
 
-The module is designed to pass the `metadata`, `containers`, and `schedules` as parameters from the source score file, with any other module [inputs](#inputs) set by the platform engineer.
+The module is designed to pass the `metadata`, `containers`, `service`, and optionally `schedules` as parameters from the source score file, with any other module [inputs](#inputs) set by the platform engineer.
 
 The required parameters are:
-- `metadata` - Score metadata including the workload name
+- `metadata` - Score metadata including the workload name and schedules (via `metadata.schedules`)
 - `containers` - Container definitions (image, command, args, variables, files, volumes, resources)
-- `schedules` - Map of schedules where each schedule creates a separate CronJob resource
+- `service` - Service section (accepted for CLI compatibility, not used by CronJobs)
+- `schedules` - (Optional) Map of schedules where each schedule creates a separate CronJob resource. Can be provided directly or extracted from `metadata.schedules`
 
 The only required input that must be set by the `module_inputs` is the `namespace` which provides the target Kubernetes namespace.
 
@@ -423,7 +433,7 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [kubernetes_cron_job.default](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/cron_job) | resource |
+| [kubernetes_cron_job_v1.default](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/cron_job_v1) | resource |
 | [kubernetes_secret.env](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
 | [kubernetes_secret.files](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
 | [random_id.id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
